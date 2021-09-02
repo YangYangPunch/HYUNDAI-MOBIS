@@ -1,0 +1,46 @@
+const AWS = require('aws-sdk');
+const docClient = new AWS.DynamoDB.DocumentClient({
+  region: "ap-northeast-2"
+});
+
+const dynamo = new AWS.DynamoDB({
+    accessKeyId : "AKIA4UOGJ4VZFKJ7JLUI",
+    secretAccessKey : "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",
+    region : 'ap-northeast-2'
+});
+
+var params = {
+    TableName : 'UserData'
+}
+
+exports.handler = function(event, context, callback) {
+    var result = {
+        "greetings":"Failure"
+    };
+    dynamo.scan(params,onScan);
+    
+    var AppID = event.identifier;
+    var AppPW = event.state;
+    function onScan(err,data){
+        if(err){
+            console.error("Unable to scan the table",JSON.stringify(err,null,2));
+        }
+        else {        
+            console.log("Scan succeeded.");
+            data.Items.forEach(function(itemdata) {
+                if(JSON.stringify(itemdata).indexOf(AppID)!=-1&&JSON.stringify(itemdata).indexOf(AppPW)!=-1){
+                    var result = {
+                        "greetings":"Successful"
+                    }
+                    callback(null,result);
+                }
+            });
+
+            if(typeof data.LastEvaluatedKey != "undefined"){
+                console.log("Scanning for more...");
+                params.ExclusiveStartKey = data.LastEvaluatedKey;
+                dynamo.scan(params, onScan);
+            }
+        }
+    }
+}
